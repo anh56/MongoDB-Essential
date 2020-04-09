@@ -1,19 +1,18 @@
 db.help();
 
 // find DB's number of collection, objects, storageSize, indexes
-
 db.stats();
 
-//products relating to Tofu
 
+//products relating to Tofu
 db.products.find({ 'ProductName': /.*Tofu.*/ });
 
-//no of products with <10 units in stock
 
+//no of products with <10 units in stock
 db.products.find({ 'UnitsInStock': { $lt: 10 } }).count();
 
-//no of products belongs to categories "Confections" with < 10 units in stock
 
+//no of products belongs to categories "Confections" with < 10 units in stock
 db.products.aggregate([
     {
         $lookup: {
@@ -32,8 +31,8 @@ db.products.aggregate([
     }
 ]).count();
 
-//list of category and no of products per cartegory
 
+//list of category and no of products per cartegory
 db.categories.aggregate([
     {
         $lookup: {
@@ -55,12 +54,10 @@ db.categories.aggregate([
 
 
 //2nd page of 10 products sorted by product name
-
 db.products.find().sort({ "ProductName": 1 }).skip(10).limit(10);
 
 
 //top 5 customer with their product list and total spend
-
 db.getCollection("order-details").aggregate()
     .lookup({
         from: "products",
@@ -97,8 +94,6 @@ db.getCollection("order-details").aggregate()
 
 
 //top 5 categories with top 5 products of the system
-
-
 db.getCollection("order-details").aggregate([
     {
         $lookup: {
@@ -151,14 +146,15 @@ db.getCollection("order-details").aggregate([
 
 ]).sort({ "totalSell": -1 }).limit(5);
 
-// list all customer name start with "A"
 
+// list all customer name start with "A"
 db.customers.find({ ContactName: /^A/ }).explain("executionStats");
+
 
 //add indexes and find again
-
 db.customers.createIndex({ ContactName: 1 })
 db.customers.find({ ContactName: /^A/ }).explain("executionStats");
+
 
 //update product to embed category info inside each document:
 db.products.aggregate([
@@ -178,34 +174,34 @@ db.products.aggregate([
 
 
 
-//top 5 most expensive order customer with products purchased
-// db.getCollection("order-details").aggregate()
-//     .lookup({
-//          from: "products",
-//           localField: "ProductID",
-//           foreignField: "ProductID",
-//           as: "productInfo"
-//     }).lookup({
-//           from: "orders",
-//           localField: "OrderID",
-//           foreignField: "OrderID",
-//           as: "orderInfo"
-//     }).lookup({
-//           from: "customers",
-//           localField: "orderInfo.CustomerID",
-//           foreignField: "CustomerID",
-//           as: "customerInfo"
-//     })  .project({  
-//         _id: 0,
-//         "cusID": "$customerInfo.CustomerID",
-//         "cusName": "$customerInfo.CompanyName",
-//         "productList": "$productInfo.ProductName",
-//         totalSpend: {
-//             // spend after discount = (unitprice * quantity) + (unitprice * quantity)*discount 
-//             $sum: [{$multiply: [ "$UnitPrice", "$Quantity"]} , 
-//                     {$multiply: ["$Discount", {$multiply: [ "$UnitPrice", "$Quantity"]}]}]}})
-//         .group({
-//               _id: "$cusID",
-//               "totalSpend" : {$sum: "$totalSpend"}
-//         })
-//     .sort({"totalSpend": -1}).limit(5);
+//top 5 most expensive order customer with products purchased (additional query)
+db.getCollection("order-details").aggregate()
+    .lookup({
+         from: "products",
+          localField: "ProductID",
+          foreignField: "ProductID",
+          as: "productInfo"
+    }).lookup({
+          from: "orders",
+          localField: "OrderID",
+          foreignField: "OrderID",
+          as: "orderInfo"
+    }).lookup({
+          from: "customers",
+          localField: "orderInfo.CustomerID",
+          foreignField: "CustomerID",
+          as: "customerInfo"
+    })  .project({  
+        _id: 0,
+        "cusID": "$customerInfo.CustomerID",
+        "cusName": "$customerInfo.CompanyName",
+        "productList": "$productInfo.ProductName",
+        totalSpend: {
+            // spend after discount = (unitprice * quantity) + (unitprice * quantity)*discount 
+            $sum: [{$multiply: [ "$UnitPrice", "$Quantity"]} , 
+                    {$multiply: ["$Discount", {$multiply: [ "$UnitPrice", "$Quantity"]}]}]}})
+        .group({
+              _id: "$cusID",
+              "totalSpend" : {$sum: "$totalSpend"}
+        })
+    .sort({"totalSpend": -1}).limit(5);
